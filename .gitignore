@@ -4,5 +4,7 @@ __pycache__/
 checkpoints/
 *.pth
 *.jpg
+RSIdata/
+runs/
 SUBMISSION*
 venv/
