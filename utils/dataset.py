@@ -6,14 +6,16 @@ import torch
 from torch.utils.data import Dataset
 import logging
 from PIL import Image
+import TTA_tools
 
 
 class BasicDataset(Dataset):
-    def __init__(self, imgs_dir, masks_dir, scale=1, mask_suffix=''):
+    def __init__(self, imgs_dir, masks_dir, scale=1, mask_suffix='', aug=True):
         self.imgs_dir = imgs_dir
         self.masks_dir = masks_dir
         self.scale = scale
         self.mask_suffix = mask_suffix
+        self.aug = aug
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
 
         self.ids = [splitext(file)[0] for file in listdir(imgs_dir)
@@ -36,10 +38,11 @@ class BasicDataset(Dataset):
             img_nd = np.expand_dims(img_nd, axis=2)
 
         # HWC to CHW
+        if img_nd.shape[2] is 3:
+            img_nd = TTA_tools.Normalize()(img_nd)
+        else:
+            img_nd = img_nd / 255
         img_trans = img_nd.transpose((2, 0, 1))
-        if img_trans.max() > 1:
-            img_trans = img_trans / 255
-
         return img_trans
 
     def __getitem__(self, i):
@@ -57,6 +60,16 @@ class BasicDataset(Dataset):
         assert img.size == mask.size, \
             f'Image and mask {idx} should be the same size, but are {img.size} and {mask.size}'
 
+        if self.aug is True:
+            sample = {'image': img, 'label': mask}
+            sample = TTA_tools.RandomHorizontalFlip()(sample)
+            # sample = TTA_tools.RandomRotate(degree=10)(sample)
+            sample = TTA_tools.RandomVerticalFlip()(sample)
+            sample = TTA_tools.RandomGaussianBlur()(sample)
+            img = sample['image']
+            mask = sample['label']
+            img = TTA_tools.randomHueSaturationValue(img)
+
         img = self.preprocess(img, self.scale)
         mask = self.preprocess(mask, self.scale)
 
@@ -69,3 +82,5 @@ class BasicDataset(Dataset):
 class CarvanaDataset(BasicDataset):
     def __init__(self, imgs_dir, masks_dir, scale=1):
         super().__init__(imgs_dir, masks_dir, scale, mask_suffix='_mask')
+
+

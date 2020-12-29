@@ -35,6 +35,8 @@ class Dblock(nn.Module):
 class Dunet(nn.Module):
     def __init__(self):
         super(Dunet, self).__init__()
+        self.n_classes = 1
+        self.n_channels = 3
         
         vgg13 = models.vgg13(pretrained=True)
 

@@ -140,6 +140,8 @@ class DinkNet34_less_pool(nn.Module):
 class DinkNet34(nn.Module):
     def __init__(self, num_classes=1, num_channels=3):
         super(DinkNet34, self).__init__()
+        self.n_channels = num_channels
+        self.n_classes = num_classes
 
         filters = [64, 128, 256, 512]
         resnet = models.resnet34(pretrained=True)

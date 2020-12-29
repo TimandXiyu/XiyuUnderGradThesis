@@ -17,6 +17,7 @@ from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 from dice_loss import SoftIoULoss, SoftDiceLoss
 import torch.backends.cudnn
+from unet import dinknet as dlinknet
 
 dir_img = 'data/imgs/'
 dir_mask = 'data/masks/'
@@ -58,9 +59,9 @@ def train_net(net,
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
-        criterion2 = SoftIoULoss()
-        # criterion1 = nn.BCELoss()
-        # criterion2 = SoftDiceLoss()
+        # criterion2 = SoftIoULoss()
+        criterion1 = nn.BCELoss()
+        criterion2 = SoftDiceLoss()
         # criterion = focal_loss()
         # criterion = nn.NLLLoss()
 
@@ -78,13 +79,14 @@ def train_net(net,
 
                 imgs = imgs.to(device=device, dtype=torch.float32)
                 mask_type = torch.float32 if net.n_classes == 1 else torch.long
+
                 true_masks = true_masks.to(device=device, dtype=mask_type)
 
                 true_masks = true_masks.float()
 
                 masks_pred = net(imgs)
                 if net.n_classes == 1:
-                    loss = criterion2(masks_pred, true_masks) # + criterion1(masks_pred, true_masks)
+                    loss = criterion2(masks_pred, true_masks) + criterion1(masks_pred, true_masks)
                 else:
                     loss = criterion(masks_pred, true_masks)
                 epoch_loss += loss.item()
@@ -99,7 +101,7 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (n_train // (10 * batch_size)) == 0:
+                if global_step % (n_train // (3 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
                         tag = tag.replace('.', '/')
                         writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
