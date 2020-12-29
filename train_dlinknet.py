@@ -161,7 +161,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
     args.epochs = 30
-    args.batchsize = 4
+    args.batchsize = 2
     args.scale = 1
     args.val = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
