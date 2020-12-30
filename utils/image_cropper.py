@@ -32,8 +32,6 @@ class Cropper(object):
                 if Cropper.blank_check(cropped, 0.35):
                     print(f'rotating for {angle * 180 / math.pi}')
                     state = False
-                else:
-                    print(f'rotate too much, re-trying, {angle * 180 / math.pi}')
         return cropped
 
     def Crop(self):
@@ -52,8 +50,6 @@ class Cropper(object):
             return False
         else:
             return True
-
-
 
 
 class CoordinateGen(object):
@@ -88,6 +84,7 @@ class CoordinateGen(object):
         for i in range(self.v_image_num):
             self.v_anchor.append(self.origin[1] + i * self.delta[1])
         self.count = 0
+        print(f'can generate {self.v_image_num * self.h_image_num} image from this big one')
 
     def __next__(self):
         if self.count >= self.v_image_num * self.h_image_num:
@@ -103,12 +100,15 @@ class CoordinateGen(object):
     def __iter__(self):
         return self
 
+    def __len__(self):
+        return self.v_image_num * self.h_image_num
+
 
 if __name__ == "__main__":
-    crop = Cropper(r'C:\Users\Tim Wang\Desktop\large satellite images\wz\src\image_1.png',
+    Image.MAX_IMAGE_PIXELS = 2000000000  # make sure you have 16GB or 32GB memory...
+    crop = Cropper(r'C:\Users\Tim Wang\Desktop\large satellite images\cz\src\P001_tiaose.tif',
                    target_size=1024,
                    delta=[512, 512],
-                   save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_src')
-    # print(crop.blank_check(Image.open(r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_src\0.png'), percent=0.3))
+                   save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src')
     crop.Crop()
 
