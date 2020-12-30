@@ -20,7 +20,7 @@
 | Unet        | 0.63  | 1024^2  | BCE+dice | 2  | RMSprop   | None               |
 | DeepLabv3+  | 0.43  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV|
 | D-LinkNet34 | 0.778 | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV|
-| Unet        | 0.67  | 1024^2  | BCE+dice | 2  | RMSprop   | V+H Flip, Gaus, HSV|
+| Unet        | 0.67  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV|
 
 ### 2020/12/30 to do:  
 + Finish the cropping of Chongzhou and Wuzhen image  
