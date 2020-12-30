@@ -7,7 +7,7 @@ from DeepLabModel.decoder import build_decoder
 from DeepLabModel.backbone import build_backbone
 
 class DeepLab(nn.Module):
-    def __init__(self, backbone='resnet', output_stride=16, num_classes=21,
+    def __init__(self, backbone='resnet', output_stride=16, num_classes=1,
                  sync_bn=True, freeze_bn=False):
         super(DeepLab, self).__init__()
         if backbone == 'drn':
@@ -21,13 +21,17 @@ class DeepLab(nn.Module):
         self.backbone = build_backbone(backbone, output_stride, BatchNorm)
         self.aspp = build_aspp(backbone, output_stride, BatchNorm)
         self.decoder = build_decoder(num_classes, backbone, BatchNorm)
+        self.sigmoid = nn.Sigmoid()
 
         self.freeze_bn = freeze_bn
+        self.n_channels = 3
+        self.n_classes = num_classes
 
     def forward(self, input):
         x, low_level_feat = self.backbone(input)
         x = self.aspp(x)
         x = self.decoder(x, low_level_feat)
+        x = self.sigmoid(x)
         x = F.interpolate(x, size=input.size()[2:], mode='bilinear', align_corners=True)
 
         return x
