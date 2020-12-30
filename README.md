@@ -22,7 +22,11 @@
 | D-LinkNet34 | 0.778 | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV|
 | Unet        | 0.67  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV|
 
-### 2020/12/30 to do:  
-+ Finish the cropping of Chongzhou and Wuzhen image  
+### 2020/12/30 to do this week:  
++ ~~Finish the cropping of Chongzhou and Wuzhen image~~
 + Looking into style transfer network  
 + Starting Igarss paper  
+
+#### Extra Comments  
+The cropping tool can crop and rotate at the same time
+![Image text](https://github.com/TimandXiyu/XiyuUnderGradThesis/blob/main/readme_img/readme_image_1.png)
