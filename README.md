@@ -12,6 +12,8 @@
 
 ### 2020/12/29 update:  
 + Validate following dataset on Deepglobe itself.
++ Dice and IoU can be interchanged, thus are actually same stuff in different mathematical version  
++ Dice Loss is generally better than IoU loss due to dice loss's numerical values are greater thus gradients are larger when backproping  
 
 | network     | dice  | res   | loss     | bs | optimizer |
 |:-----------:|:-----:|:-----:|:--------:|:--:| :-------: |
