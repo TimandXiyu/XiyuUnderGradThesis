@@ -13,7 +13,7 @@ from eval import eval_net
 from torch.utils.tensorboard import SummaryWriter
 from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
-from dice_loss import SoftDiceLoss
+from utils.dice_loss import SoftDiceLoss
 import torch.backends.cudnn
 from unet.dinknet import DinkNet34 as DlinkNet34
 

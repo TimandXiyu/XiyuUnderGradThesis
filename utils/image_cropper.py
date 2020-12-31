@@ -7,12 +7,20 @@ import os
 import tqdm
 
 
+def namefinder(path):
+    dirlist = [int(i.split('.')[0]) for i in os.listdir(path)]
+    return np.asarray(dirlist)
+
+
 class Cropper(object):
-    def __init__(self, img_path, target_size, delta, save, origin=None, offset=None):
+    def __init__(self, img_path, mask_path, target_size, delta, target_save, mask_save, origin=None, offset=None):
         self.img_path = img_path
-        self.save = save
+        self.target_save = target_save
+        self.mask_save = mask_save
+        self.mask_path = mask_path
         self.target_size = target_size
         self.image = Image.open(self.img_path)
+        self.mask = Image.open(self.mask_path)
         self.size = self.image.size
         self.gen = CoordinateGen(image_size=list(self.size),
                                  target_size=self.target_size,
@@ -20,7 +28,7 @@ class Cropper(object):
                                  origin=origin,
                                  offset=offset)
 
-    def random_angle_crop(self, base):
+    def random_angle_crop(self, base, mode):
         if not isinstance(base, tuple):
             raise TypeError('base should be a tuple with 2 elements')
         state = True
@@ -28,20 +36,29 @@ class Cropper(object):
                 angle = math.pi * random.random()
                 height = self.target_size
                 width = self.target_size
-                cropped = diagonal_crop.crop(self.image, base, angle, height, width)
-                if Cropper.blank_check(cropped, 0.35):
-                    print(f'rotating for {angle * 180 / math.pi}')
+                if mode is 'image':
+                    cropped = diagonal_crop.crop(self.image, base, angle, height, width)
+                    if Cropper.blank_check(cropped, 0.35) and mode is 'image':
+                        print(f'rotating for {angle * 180 / math.pi}')
+                        state = False
+                elif mode is 'mask':
+                    cropped = diagonal_crop.crop(self.mask, base, angle, height, width)
                     state = False
         return cropped
 
     def Crop(self):
         for i, coordinate in tqdm.tqdm(enumerate(self.gen)):
-            if random.random() < 0.5:
-                cropped = self.random_angle_crop(base=(coordinate[0], coordinate[1]))
-                cropped.save(os.path.join(self.save, str(i) + '.png'))
+            if random.random() < 0.8:
+                cropped = self.random_angle_crop(base=(coordinate[0], coordinate[1]), mode='image')
+                cropped_mask = self.random_angle_crop(base=(coordinate[0], coordinate[1]), mode='mask')
+                cropped.save(os.path.join(self.target_save, str(i) + '.png'))
+                cropped_mask.save(os.path.join(self.mask_save, str(i) + '.png'))
             else:
                 cropped = self.image.crop((coordinate))
-                cropped.save(os.path.join(self.save, str(i) + '.png'))
+                cropped_mask = self.mask.crop((coordinate))
+                cropped.save(os.path.join(self.target_save, str(i) + '.png'))
+                cropped_mask.save(os.path.join(self.mask_save, str(i) + '.png'))
+
 
     @staticmethod
     def blank_check(image, percent):
@@ -106,9 +123,12 @@ class CoordinateGen(object):
 
 if __name__ == "__main__":
     Image.MAX_IMAGE_PIXELS = 2000000000  # make sure you have 16GB or 32GB memory...
-    crop = Cropper(r'C:\Users\Tim Wang\Desktop\large satellite images\cz\src\P001_tiaose.tif',
+    crop = Cropper(img_path=r'C:\Users\tiwang\Desktop\large satellite images\cz\src\P001_tiaose.tif',
+                   mask_path=r'C:\Users\tiwang\Desktop\large satellite images\cz\Annotation\src\P002_f_mask.png',
                    target_size=1024,
                    delta=[512, 512],
-                   save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src')
+                   target_save=r'C:\Users\tiwang\Desktop\large satellite images\cropped_cz_src',
+                   mask_save=r'C:\Users\tiwang\Desktop\large satellite images\cropped_cz_mask')
     crop.Crop()
+
 
