@@ -27,35 +27,50 @@ class Cropper(object):
                                  delta=delta,
                                  origin=origin,
                                  offset=offset)
+        if not os.path.exists(img_path):
+            raise FileExistsError('image path not exist')
+        if not os.path.exists(self.target_save):
+            print('target save path not exist, creating for you')
+            os.mkdir(self.target_save)
+        if not os.path.exists(self.mask_save):
+            print('mask save path not exist, creating for you')
+            os.mkdir(self.mask_save)
 
-    def random_angle_crop(self, base, mode):
+    def random_angle_crop(self, base):
         if not isinstance(base, tuple):
             raise TypeError('base should be a tuple with 2 elements')
         state = True
+        counter = 0
         while state:
                 angle = math.pi * random.random()
                 height = self.target_size
                 width = self.target_size
-                if mode is 'image':
-                    cropped = diagonal_crop.crop(self.image, base, angle, height, width)
-                    if Cropper.blank_check(cropped, 0.35) and mode is 'image':
-                        print(f'rotating for {angle * 180 / math.pi}')
-                        state = False
-                elif mode is 'mask':
-                    cropped = diagonal_crop.crop(self.mask, base, angle, height, width)
+                cropped = diagonal_crop.crop(self.image, base, angle, height, width)
+                cropped_mask = diagonal_crop.crop(self.mask, base, angle, height, width)
+                counter += 1
+                if Cropper.blank_check(cropped, 0.15):
+                    print(f'rotating for {angle * 180 / math.pi}')
                     state = False
-        return cropped
+                elif counter >= 10:
+                    print('fail to rotate, keep the original image as output')
+                    cropped = self.image.crop((base[0], base[1],
+                                              base[0] + self.target_size,
+                                              base[1] + self.target_size))
+                    cropped_mask = self.mask.crop((base[0], base[1],
+                                                  base[0] + self.target_size,
+                                                  base[1] + self.target_size))
+                    state = False
+        return cropped, cropped_mask
 
     def Crop(self):
         for i, coordinate in tqdm.tqdm(enumerate(self.gen)):
-            if random.random() < 0.8:
-                cropped = self.random_angle_crop(base=(coordinate[0], coordinate[1]), mode='image')
-                cropped_mask = self.random_angle_crop(base=(coordinate[0], coordinate[1]), mode='mask')
+            if random.random() < 0.9:
+                cropped, cropped_mask = self.random_angle_crop(base=(coordinate[0], coordinate[1]))
                 cropped.save(os.path.join(self.target_save, str(i) + '.png'))
                 cropped_mask.save(os.path.join(self.mask_save, str(i) + '.png'))
             else:
-                cropped = self.image.crop((coordinate))
-                cropped_mask = self.mask.crop((coordinate))
+                cropped = self.image.crop(coordinate)
+                cropped_mask = self.mask.crop(coordinate)
                 cropped.save(os.path.join(self.target_save, str(i) + '.png'))
                 cropped_mask.save(os.path.join(self.mask_save, str(i) + '.png'))
 
@@ -123,12 +138,12 @@ class CoordinateGen(object):
 
 if __name__ == "__main__":
     Image.MAX_IMAGE_PIXELS = 2000000000  # make sure you have 16GB or 32GB memory...
-    crop = Cropper(img_path=r'C:\Users\tiwang\Desktop\large satellite images\cz\src\P001_tiaose.tif',
-                   mask_path=r'C:\Users\tiwang\Desktop\large satellite images\cz\Annotation\src\P002_f_mask.png',
+    crop = Cropper(img_path=r'C:\Users\Tim Wang\Desktop\large satellite images\cz\src\P001_tiaose.tif',
+                   mask_path=r'C:\Users\Tim Wang\Desktop\large satellite images\cz\Annotation\src\P002_f_mask.png',
                    target_size=1024,
                    delta=[512, 512],
-                   target_save=r'C:\Users\tiwang\Desktop\large satellite images\cropped_cz_src',
-                   mask_save=r'C:\Users\tiwang\Desktop\large satellite images\cropped_cz_mask')
+                   target_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src',
+                   mask_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_mask')
     crop.Crop()
 
 
