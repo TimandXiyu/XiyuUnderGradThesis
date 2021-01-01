@@ -2,17 +2,9 @@ import logging
 import os
 import sys
 
-import torch
-import torch.nn as nn
-from torch import optim
-from tqdm import tqdm
-
-from eval import eval_net
-
 from torch.utils.tensorboard import SummaryWriter
 from utils.dataset import BasicDataset
-from torch.utils.data import DataLoader, random_split
-from utils.dice_loss import SoftDiceLoss
+from torch.utils.data import DataLoader
 import torch.backends.cudnn
 from unet.dinknet import DinkNet101 as DlinkNet101
 from test import test_net
