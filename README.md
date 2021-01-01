@@ -30,3 +30,4 @@
 #### Extra Comments  
 The cropping tool can crop and rotate at the same time
 ![Image text](https://github.com/TimandXiyu/XiyuUnderGradThesis/blob/main/readme_img/readme_image_1.png)
+If you wang to solely use the cropping tool, it is in the utils directory.
