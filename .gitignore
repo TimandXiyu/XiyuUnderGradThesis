@@ -8,3 +8,5 @@ RSIdata/
 runs/
 SUBMISSION*
 venv/'.idea' 
+.idea
+.idea/

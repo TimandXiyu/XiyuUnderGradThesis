@@ -251,9 +251,11 @@ class DinkNet50(nn.Module):
         return torch.sigmoid(out)
     
 class DinkNet101(nn.Module):
-    def __init__(self, num_classes=1):
+    def __init__(self, num_classes=1, num_channels=3):
         super(DinkNet101, self).__init__()
 
+        self.n_classes = num_classes
+        self.n_channels = num_channels
         filters = [256, 512, 1024, 2048]
         resnet = models.resnet101(pretrained=True)
         self.firstconv = resnet.conv1

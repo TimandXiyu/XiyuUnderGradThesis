@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset
 import logging
 from PIL import Image
-import TTA_tools
+import utils.TTA_tools as TTA_tools
 
 
 class BasicDataset(Dataset):
