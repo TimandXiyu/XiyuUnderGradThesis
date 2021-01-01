@@ -15,12 +15,14 @@
 + Dice and IoU can be interchanged, thus are actually same stuff in different mathematical version  
 + Dice Loss is generally better than IoU loss due to dice loss's numerical values are greater thus gradients are larger when backproping  
 
-| network     | dice  | res     | loss     | bs | optimizer | augmentation       |
-|:-----------:|:-----:|:-------:|:--------:|:--:| :-------: | :----------------: |
-| Unet        | 0.63  | 1024^2  | BCE+dice | 2  | RMSprop   | None               |
-| DeepLabv3+  | 0.43  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV|
-| D-LinkNet34 | 0.778 | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV|
-| Unet        | 0.67  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV|
+| network     | dice  | res     | loss     | bs | optimizer | augmentation       | Cross-area validation|
+|:-----------:|:-----:|:-------:|:--------:|:--:| :-------: | :----------------: | :------------------: |
+| Unet        | 0.63  | 1024^2  | BCE+dice | 2  | RMSprop   | None               | None                 |
+| DeepLabv3+  | 0.43  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV| None                 |
+| D-LinkNet34 | 0.778 | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV| 0.62                 |
+| Unet        | 0.67  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV| On-going             |
+| D-LinkNet101| 0.78  | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV| 0.63                 |
+
 
 ### 2020/12/30 to do this week:  
 + ~~Finish the cropping of Chongzhou and Wuzhen image~~
