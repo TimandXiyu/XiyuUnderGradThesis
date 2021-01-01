@@ -7,5 +7,4 @@ checkpoints/
 RSIdata/
 runs/
 SUBMISSION*
-venv/
-.idea
+venv/'.idea' 
