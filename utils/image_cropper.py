@@ -9,6 +9,8 @@ import tqdm
 
 def namefinder(path):
     dirlist = [int(i.split('.')[0]) for i in os.listdir(path)]
+    if len(dirlist) is 0:
+        return 0
     return np.max(np.asarray(dirlist))
 
 
@@ -145,11 +147,11 @@ class CoordinateGen(object):
 
 if __name__ == "__main__":
     Image.MAX_IMAGE_PIXELS = 2000000000  # make sure you have 16GB or 32GB memory...
-    crop = Cropper(img_path=r'C:\Users\Tim Wang\Desktop\large satellite images\cz\src\image_4.jpg',
-                   mask_path=r'C:\Users\Tim Wang\Desktop\large satellite images\cz\Annotation\src\P002_4_mask.png',
+    crop = Cropper(img_path=r'C:\Users\Tim Wang\Desktop\large satellite images\wz\src\image_4.png',
+                   mask_path=r'C:\Users\Tim Wang\Desktop\large satellite images\wz\label\label_4.png',
                    target_size=1024,
                    delta=[512, 512],
-                   target_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src',
-                   mask_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_mask')
+                   target_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_src',
+                   mask_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_mask')
     crop.Crop()
-    print(namefinder(r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src'))
+    # print(namefinder(r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src'))

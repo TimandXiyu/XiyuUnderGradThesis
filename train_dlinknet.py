@@ -15,7 +15,7 @@ from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 from utils.dice_loss import SoftDiceLoss
 import torch.backends.cudnn
-from unet.dinknet import DinkNet34 as DlinkNet34
+from unet.dinknet import DinkNet101 as DlinkNet101
 
 dir_img = 'data/imgs/'
 dir_mask = 'data/masks/'
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
     args.epochs = 30
-    args.batchsize = 2
+    args.batchsize = 4
     args.scale = 1
     args.val = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = DlinkNet34(num_classes=1, num_channels=3)
+    net = DlinkNet101(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')
@@ -184,7 +184,7 @@ if __name__ == '__main__':
 
     net.to(device=device)
     # faster convolutions, but more memory
-    torch.backends.cudnn.benchmark = True
+    # torch.backends.cudnn.benchmark = True
 
     try:
         train_net(net=net,
