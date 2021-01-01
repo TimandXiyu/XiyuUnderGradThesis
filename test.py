@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 from utils.dice_loss import dice_coeff
+from PIL import Image
 
 
 def test_net(net, loader, device):
