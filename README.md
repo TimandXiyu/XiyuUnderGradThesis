@@ -6,9 +6,9 @@
 + Current experiments that had been done are Unet, DeepLabv3+ and D-LinkNet with DeepGlobe dataset.  
 ---
 ## General to do list:  
-1. ~~Baseline Benchmarking
-2. ~~Generate Fake Dataset 
-3. Benchmarking Again (on going)
+1. ~~Baseline Benchmarking~~  
+2. ~~Generate Fake Dataset~~  
+3. Benchmarking Again (on going)  
 
 ### Weekly to do:  
 + ~~Finish the cropping of Chongzhou and Wuzhen image
