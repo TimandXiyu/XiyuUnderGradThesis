@@ -15,11 +15,12 @@ from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 from utils.dice_loss import SoftDiceLoss
 import torch.backends.cudnn
+from unet.dinknet import DinkNet34 as DlinkNet34
 from unet.dinknet import DinkNet101 as DlinkNet101
 
-dir_img = 'data/imgs/'
-dir_mask = 'data/masks/'
-dir_checkpoint = 'checkpoints/'
+dir_img = r'data/mixed_data/'
+dir_mask = r'data/mixed_mask/'
+dir_checkpoint = r'checkpoints/'
 
 
 def train_net(net,
@@ -101,7 +102,7 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (n_train // (3 * batch_size)) == 0:
+                if global_step % (n_train // (2 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
                         tag = tag.replace('.', '/')
                         writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
@@ -162,6 +163,8 @@ if __name__ == '__main__':
     args.batchsize = 4
     args.scale = 1
     args.val = 10
+    args.LR = 1e-3
+    args.load = r'checkpoints/CP_epoch4.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
@@ -171,7 +174,7 @@ if __name__ == '__main__':
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = DlinkNet101(num_classes=1, num_channels=3)
+    net = DlinkNet34(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')

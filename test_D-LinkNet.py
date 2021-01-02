@@ -7,6 +7,7 @@ from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader
 import torch.backends.cudnn
 from unet.dinknet import DinkNet101 as DlinkNet101
+from unet.dinknet import DinkNet34 as DlinkNet34
 from test import test_net
 
 
@@ -55,11 +56,11 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     batchsize = 4
     scale = 1
-    load_dir = r'C:\Users\Tim Wang\Desktop\gitclone\XiyuUnderGradThesis\checkpoints\CP_epoch16.pth'
+    load_dir = r'C:\Users\Tim Wang\Desktop\gitclone\XiyuUnderGradThesis\checkpoints\CP_epoch9.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DlinkNet101(num_classes=1, num_channels=3)
+    net = DlinkNet34(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')
