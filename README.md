@@ -5,18 +5,23 @@
 + All of those codes are based on PyTorch.  
 + Current experiments that had been done are Unet, DeepLabv3+ and D-LinkNet with DeepGlobe dataset.  
 ---
-## General to do list:  
+## General to do:  
 1. ~~Baseline Benchmarking~~  
 2. ~~Generate Fake Dataset~~  
 3. Benchmarking Again (on going)  
 
 ### Weekly to do:  
-+ ~~Finish the cropping of Chongzhou and Wuzhen image
-+ ~~Looking into style transfer network  
++ ~~Finish the cropping of Chongzhou and Wuzhen image~~  
++ ~~Looking into style transfer network~~  
 + Starting Igarss paper  
 
+### Next Week to do:  
++ Re-train the style transfer network from SpaceNet data (I am downloading it, low download speed...)  
++ Re-generate the data for mixed train dataset  
++ Finish the paper in time!!!  
 
-##Main Results (updated at 2020/1/3)  
+
+## Main Results (updated at 2020/1/3)  
 | network     | dice  | res     | loss     | bs | optimizer | augmentation       | Cross-area teston cz | Cross-area test on wz | Cross-area testing with extra 1000 fake img |
 |:-----------:|:-----:|:-------:|:--------:|:--:| :-------: | :----------------: | :------------------: | :-------------------: | :-----------------------------------------: |
 | Unet        | 0.63  | 1024^2  | BCE+dice | 2  | RMSprop   | None               | None                 | None                  | None |
