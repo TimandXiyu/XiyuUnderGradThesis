@@ -24,10 +24,10 @@
 ## Main Results (updated at 2020/1/3)  
 | network     | dice  | res     | loss     | bs | optimizer | augmentation       | Cross-area teston cz | Cross-area test on wz | Cross-area testing with extra 1000 fake img |
 |:-----------:|:-----:|:-------:|:--------:|:--:| :-------: | :----------------: | :------------------: | :-------------------: | :-----------------------------------------: |
-| Unet        | 0.63  | 1024^2  | BCE+dice | 2  | RMSprop   | None               | None                 | None                  | None |
-| DeepLabv3+  | 0.43  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV| None                 | None                  | None |
-| D-LinkNet34 | 0.778 | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV| 0.62                 | None                  | 0.67 |
-| Unet        | 0.67  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV| 0.61                 | 0.62                  | to do |
+| Unet        | 0.63  | 1024^2  | BCE+dice | 2  | RMSprop   | None               | None                 | None                  | None  |
+| DeepLabv3+  | 0.43  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV| None                 | None                  | None  |
+| D-LinkNet34 | 0.778 | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV| 0.62                 | None                  | 0.67  |
+| Unet        | 0.67  | 1024^2  | BCE+dice | 2  | Adam      | V+H Flip, Gaus, HSV| 0.61                 | 0.62                  | 0.627 |
 | D-LinkNet101| 0.78  | 1024^2  | BCE+dice | 4  | Adam      | V+H Flip, Gaus, HSV| 0.63                 | 0.64                  | to do |
 
 ### 2020/12/29 update:  
