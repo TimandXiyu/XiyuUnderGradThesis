@@ -9,8 +9,8 @@ import torch.backends.cudnn
 from unet import UNet
 from test import test_net
 
-dir_img = 'data/cropped_wz_src/'
-dir_mask = 'data/cropped_wz_mask/'
+dir_img = 'data/cropped_cz_src/'
+dir_mask = 'data/cropped_cz_mask/'
 
 
 def tst_net(net,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     batchsize = 2
     scale = 1
-    load_dir = r'C:\Users\Tim Wang\Desktop\CP unet\CP_epoch30.pth'
+    load_dir = r'C:\Users\Tim Wang\Desktop\gitclone\XiyuUnderGradThesis\checkpoints\CP_epoch7.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 

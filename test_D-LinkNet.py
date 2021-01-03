@@ -56,7 +56,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     batchsize = 4
     scale = 1
-    load_dir = r'C:\Users\Tim Wang\Desktop\gitclone\XiyuUnderGradThesis\checkpoints\CP_epoch9.pth'
+    load_dir = r'C:\Users\Tim Wang\Desktop\gitclone\XiyuUnderGradThesis\checkpoints\CP_epoch18.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 

@@ -17,9 +17,9 @@ from torch.utils.data import DataLoader, random_split
 from utils.dice_loss import SoftDiceLoss
 import torch.backends.cudnn
 
-dir_img = 'data/imgs/'
-dir_mask = 'data/masks/'
-dir_checkpoint = 'checkpoints/'
+dir_img = r'data/mixed_data/'
+dir_mask = r'data/mixed_mask/'
+dir_checkpoint = r'checkpoints/'
 
 
 def train_net(net,
@@ -30,7 +30,7 @@ def train_net(net,
               val_percent=0.1,
               save_cp=True,
               img_scale=0.5):
-
+    opt_level = 'O1'
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
@@ -94,12 +94,12 @@ def train_net(net,
 
                 optimizer.zero_grad()
                 loss.backward()
-                # nn.utils.clip_grad_value_(net.parameters(), 0.1)
+                # nn.utils.clip_grad_value_(network.parameters(), 0.1)
                 optimizer.step()
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (n_train // (3 * batch_size)) == 0:
+                if global_step % (n_train // (2 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
                         tag = tag.replace('.', '/')
                         writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
