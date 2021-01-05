@@ -6,14 +6,12 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader
 import torch.backends.cudnn
-from unet.dinknet import DinkNet101 as DlinkNet101
-from unet.dinknet import DinkNet34 as DlinkNet34
-from unet.dinknet import DinkNet50 as DlinkNet50
+from DeepLabModel.deeplab import *
 from test import test_net
 
 
-dir_img = 'data/cropped_cz_src/'
-dir_mask = 'data/cropped_cz_mask/'
+dir_img = 'data/cropped_wz_src/'
+dir_mask = 'data/cropped_wz_mask/'
 
 
 def tst_net(net,
@@ -55,13 +53,16 @@ def tst_net(net,
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    batchsize = 4
+    batchsize = 2
     scale = 1
-    load_dir = r'C:\Users\Tim Wang\Desktop\CP DlinkNet101\CP_epoch10.pth'
+    load_dir = r'./checkpoints/CP_epoch45.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DlinkNet101(num_classes=1, num_channels=3)
+    net = DeepLab(num_classes=1,
+                  backbone='mobilenet',
+                  output_stride=16,
+                  freeze_bn=False)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')
@@ -74,7 +75,7 @@ if __name__ == "__main__":
 
     net.to(device=device)
     # faster convolutions, but more memory
-    torch.backends.cudnn.benchmark = True
+    # torch.backends.cudnn.benchmark = True
 
     try:
         tst_net(net=net,

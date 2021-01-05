@@ -11,10 +11,11 @@ from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 from utils.dice_loss import SoftDiceLoss
 import torch.backends.cudnn
+from utils.lr_scheduler import LR_Scheduler
 from DeepLabModel.deeplab import *
 
-dir_img = 'data/imgs/'
-dir_mask = 'data/masks/'
+dir_img = 'data/mixed_data/'
+dir_mask = 'data/mixed_mask/'
 dir_checkpoint = 'checkpoints/'
 
 
@@ -49,8 +50,8 @@ def train_net(net,
     ''')
 
     # optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
-    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max', patience=2)
+    optimizer = optim.SGD(net.parameters(), lr=lr, weight_decay=5e-4, momentum=0.9)
+    scheduler = LR_Scheduler('poly', 5e-3, epochs, len(train_loader))
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
@@ -60,9 +61,12 @@ def train_net(net,
         # criterion = focal_loss()
         # criterion = nn.NLLLoss()
 
+    best_pred = 0
+
     for epoch in range(epochs):
         net.train()
         epoch_loss = 0
+        i = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
                 dataset.aug = True
@@ -85,6 +89,10 @@ def train_net(net,
                     loss = criterion2(masks_pred, true_masks) + criterion1(masks_pred, true_masks)
                 else:
                     loss = criterion(masks_pred, true_masks)
+                if best_pred <= 1 - loss.item():
+                    best_pred = loss.item()
+                scheduler(optimizer, i, epoch, best_pred)
+
                 epoch_loss += loss.item()
                 writer.add_scalar('Loss/train', loss.item(), global_step)
 
@@ -97,14 +105,13 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (n_train // (3 * batch_size)) == 0:
+                if global_step % (n_train // (2 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
                         tag = tag.replace('.', '/')
                         writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
-                    scheduler.step(val_score)
                     writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
 
                     if net.n_classes > 1:
@@ -154,8 +161,8 @@ def get_args():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
-    args.epochs = 30
-    args.batchsize = 2
+    args.epochs = 100
+    args.batchsize = 4
     args.scale = 1
     args.val = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -168,7 +175,7 @@ if __name__ == '__main__':
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
     net = DeepLab(num_classes=1,
-                  backbone='xception',
+                  backbone='mobilenet',
                   output_stride=16,
                   freeze_bn=False)
     logging.info(f'Network:\n'

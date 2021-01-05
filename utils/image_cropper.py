@@ -5,7 +5,8 @@ import diagonal_crop
 import random
 import os
 import tqdm
-
+import matplotlib.pyplot as plt
+import cv2
 
 def namefinder(path):
     dirlist = [int(i.split('.')[0]) for i in os.listdir(path)]
@@ -107,7 +108,6 @@ class CoordinateGen(object):
             self.origin = origin
         if offset is None:
             offset = [0, 0]
-        self.delta = delta
         self.image_size = image_size
         self.target_size = target_size
         self.origin[0] = offset[0] + self.origin[0]  # left bound
@@ -147,11 +147,19 @@ class CoordinateGen(object):
 
 if __name__ == "__main__":
     Image.MAX_IMAGE_PIXELS = 2000000000  # make sure you have 16GB or 32GB memory...
-    crop = Cropper(img_path=r'C:\Users\Tim Wang\Desktop\large satellite images\wz\src\image_4.png',
-                   mask_path=r'C:\Users\Tim Wang\Desktop\large satellite images\wz\label\label_4.png',
-                   target_size=1024,
-                   delta=[512, 512],
-                   target_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_src',
-                   mask_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_mask')
-    crop.Crop()
+    # crop = Cropper(img_path=r'C:\Users\Tim Wang\Desktop\large satellite images\wz\src\image_4.png',
+    #                mask_path=r'C:\Users\Tim Wang\Desktop\large satellite images\wz\label\label_4.png',
+    #                target_size=1024,
+    #                delta=[512, 512],
+    #                target_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_src',
+    #                mask_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_mask')
+    # crop.Crop()
     # print(namefinder(r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src'))
+    CoordinateGen(image_size=[16360, 7728])
+    # img = cv2.imread(r'D:\SpaceNet\AOI_2_Vegas\PS-RGB\SN3_roads_train_AOI_2_Vegas_PS-RGB_img5.tif', cv2.IMREAD_UNCHANGED)
+    # img = img/img.max()
+    # img = img*255
+    # img = img.astype(np.uint8)
+    # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    # plt.imshow(img)
+    # plt.show()
