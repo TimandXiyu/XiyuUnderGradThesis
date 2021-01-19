@@ -4,6 +4,7 @@ import os
 import sys
 
 from torch import optim
+import numpy as np
 from tqdm import tqdm
 from eval import eval_net
 from torch.utils.tensorboard import SummaryWriter
@@ -14,8 +15,8 @@ import torch.backends.cudnn
 from utils.lr_scheduler import LR_Scheduler
 from DeepLabModel.deeplab import *
 
-dir_img = 'data/mixed_data/'
-dir_mask = 'data/mixed_mask/'
+dir_img = 'data/mixed_data_2.0/'
+dir_mask = 'data/mixed_mask_2.0/'
 dir_checkpoint = 'checkpoints/'
 
 
@@ -23,17 +24,24 @@ def train_net(net,
               device,
               epochs=5,
               batch_size=1,
-              lr=0.001,
+              lr=0.0001,
               val_percent=0.1,
               save_cp=True,
-              img_scale=0.5):
-
+              img_scale=0.5,
+              val_ignore_index=None):
+    torch.manual_seed(1234)
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
-    val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
+    if val_ignore_index is not None:
+        val_indeces = val.indices
+        reference = val_indeces.copy()
+        for i, ele in enumerate(reference):
+            if ele > val_ignore_index:
+                val_indeces.remove(ele)
+    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
 
     writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
     global_step = 0
@@ -51,7 +59,19 @@ def train_net(net,
 
     # optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     optimizer = optim.SGD(net.parameters(), lr=lr, weight_decay=5e-4, momentum=0.9)
-    scheduler = LR_Scheduler('poly', 5e-3, epochs, len(train_loader))
+    scheduler = LR_Scheduler('poly', lr, epochs, len(train_loader))
+    # optimizer = optim.Adam(net.parameters(), lr=5e-3, weight_decay=1e-8)
+    # scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, 1e-4, 5e-3,
+    #                                               step_size_up=250,
+    #                                               step_size_down=250,
+    #                                               mode='triangular',
+    #                                               gamma=1.0,
+    #                                               scale_fn=None,
+    #                                               scale_mode='cycle',
+    #                                               cycle_momentum=True,
+    #                                               base_momentum=0.8,
+    #                                               max_momentum=0.9,
+    #                                               last_epoch=-1)
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
@@ -93,18 +113,22 @@ def train_net(net,
                     best_pred = loss.item()
                 scheduler(optimizer, i, epoch, best_pred)
 
+
                 epoch_loss += loss.item()
                 writer.add_scalar('Loss/train', loss.item(), global_step)
 
-                pbar.set_postfix(**{'loss (batch)': loss.item()})
+                pbar.set_postfix(**{'loss (batch)': loss.item(), 'learning rate': optimizer.param_groups[0]['lr']})
 
                 optimizer.zero_grad()
                 loss.backward()
                 # nn.utils.clip_grad_value_(net.parameters(), 0.1)
                 optimizer.step()
+                # scheduler.step()
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
+                if global_step % 100 == 0:
+                    writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
                 if global_step % (n_train // (2 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
                         tag = tag.replace('.', '/')
@@ -112,7 +136,6 @@ def train_net(net,
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
-                    writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
 
                     if net.n_classes > 1:
                         logging.info('Validation cross entropy: {}'.format(val_score))
@@ -161,19 +184,15 @@ def get_args():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
-    args.epochs = 100
+    args.epochs = 200
     args.batchsize = 4
+    args.lr = 0.005
     args.scale = 1
     args.val = 10
+    # args.load = r'checkpoints/CP_epoch100.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    # Change here to adapt to your data
-    # n_channels=3 for RGB images
-    # n_classes is the number of probabilities you want to get per pixel
-    #   - For 1 class and background, use n_classes=1
-    #   - For 2 classes, use n_classes=1
-    #   - For N > 2 classes, use n_classes=N
     net = DeepLab(num_classes=1,
                   backbone='mobilenet',
                   output_stride=16,
@@ -199,7 +218,8 @@ if __name__ == '__main__':
                   lr=args.lr,
                   device=device,
                   img_scale=args.scale,
-                  val_percent=args.val / 100)
+                  val_percent=args.val / 100,
+                  val_ignore_index=6225)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')

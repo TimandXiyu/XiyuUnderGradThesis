@@ -155,7 +155,7 @@ if __name__ == "__main__":
     #                mask_save=r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_wz_mask')
     # crop.Crop()
     # print(namefinder(r'C:\Users\Tim Wang\Desktop\large satellite images\cropped_cz_src'))
-    CoordinateGen(image_size=[16360, 7728])
+    # CoordinateGen(image_size=[16360, 7728])
     # img = cv2.imread(r'D:\SpaceNet\AOI_2_Vegas\PS-RGB\SN3_roads_train_AOI_2_Vegas_PS-RGB_img5.tif', cv2.IMREAD_UNCHANGED)
     # img = img/img.max()
     # img = img*255
@@ -163,3 +163,5 @@ if __name__ == "__main__":
     # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     # plt.imshow(img)
     # plt.show()
+    img = Image.open(r'C:\Users\Tim Wang\Desktop\shot.png')
+    img.save(r'C:\Users\Tim Wang\Desktop\shot.jpg')

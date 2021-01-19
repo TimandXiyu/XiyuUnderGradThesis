@@ -19,8 +19,8 @@ from unet.dinknet import DinkNet34 as DlinkNet34
 from unet.dinknet import DinkNet101 as DlinkNet101
 from unet.dinknet import DinkNet50 as DlinkNet50
 
-dir_img = r'data/train_data/'
-dir_mask = r'data/train_masks/'
+dir_img = r'data/mixed_data_2.0/'
+dir_mask = r'data/mixed_mask_2.0/'
 dir_checkpoint = r'checkpoints/'
 
 
@@ -32,7 +32,7 @@ def train_net(net,
               val_percent=0.1,
               save_cp=True,
               img_scale=0.5):
-
+    torch.manual_seed(1234)
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
@@ -56,7 +56,9 @@ def train_net(net,
 
     # optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max', patience=2)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max',
+                                                     factor=0.2,
+                                                     patience=5)
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
@@ -91,10 +93,11 @@ def train_net(net,
                     loss = criterion2(masks_pred, true_masks) + criterion1(masks_pred, true_masks)
                 else:
                     loss = criterion(masks_pred, true_masks)
+
                 epoch_loss += loss.item()
                 writer.add_scalar('Loss/train', loss.item(), global_step)
 
-                pbar.set_postfix(**{'loss (batch)': loss.item()})
+                pbar.set_postfix(**{'loss (batch)': loss.item(), 'learning rate': optimizer.param_groups[0]['lr']})
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -160,9 +163,10 @@ def get_args():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
-    args.epochs = 30
-    args.batchsize = 2
+    args.epochs = 100
+    args.batchsize = 4
     args.scale = 1
+    args.lr = 2e-4
     args.val = 10
     args.load = False
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -174,7 +178,7 @@ if __name__ == '__main__':
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = DlinkNet101(num_classes=1, num_channels=3)
+    net = DlinkNet34(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')

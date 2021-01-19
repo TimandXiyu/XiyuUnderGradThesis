@@ -18,8 +18,12 @@ class BasicDataset(Dataset):
         self.aug = aug
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
 
-        self.ids = [splitext(file)[0] for file in listdir(imgs_dir)
-                    if not file.startswith('.')]
+        ids = [splitext(file)[0] for file in listdir(imgs_dir) if not file.startswith('.')]
+        ids = [int(x) for x in ids]
+        ids = sorted(ids)
+        self.ids = [str(x) for x in ids]
+
+
         logging.info(f'Creating dataset with {len(self.ids)} examples')
 
     def __len__(self):
@@ -78,9 +82,5 @@ class BasicDataset(Dataset):
             'mask': torch.from_numpy(mask).type(torch.FloatTensor)
         }
 
-
-class CarvanaDataset(BasicDataset):
-    def __init__(self, imgs_dir, masks_dir, scale=1):
-        super().__init__(imgs_dir, masks_dir, scale, mask_suffix='_mask')
 
 
