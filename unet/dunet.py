@@ -6,10 +6,10 @@ import torch.nn.functional as F
 
 from functools import partial
 
-nonlinearity = partial(F.relu,inplace=True)
+nonlinearity = partial(F.relu, inplace=True)
 
 class Dblock(nn.Module):
-    def __init__(self,channel):
+    def __init__(self, channel):
         super(Dblock, self).__init__()
         self.dilate1 = nn.Conv2d(channel/2, channel, kernel_size=3, dilation=1, padding=1)
         self.dilate2 = nn.Conv2d(channel, channel, kernel_size=3, dilation=2, padding=2)

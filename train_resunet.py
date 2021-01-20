@@ -15,9 +15,8 @@ from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 from utils.dice_loss import SoftDiceLoss
 import torch.backends.cudnn
-from unet.dinknet import DinkNet34 as DlinkNet34
-from unet.dinknet import DinkNet101 as DlinkNet101
-from unet.dinknet import DinkNet50 as DlinkNet50
+from unet.resunet_p import ResUnetPlusPlus
+
 
 dir_img = r'data/mixed_data_2.0/'
 dir_mask = r'data/mixed_mask_2.0/'
@@ -31,14 +30,21 @@ def train_net(net,
               lr=0.001,
               val_percent=0.1,
               save_cp=True,
-              img_scale=0.5):
+              img_scale=0.5,
+              val_ignore_index=None):
     torch.manual_seed(1234)
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
-    val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
+    if val_ignore_index is not None:
+        val_indeces = val.indices
+        reference = val_indeces.copy()
+        for i, ele in enumerate(reference):
+            if ele > val_ignore_index:
+                val_indeces.remove(ele)
+    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
 
     writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
     global_step = 0
@@ -55,16 +61,16 @@ def train_net(net,
     ''')
 
     # optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
+    # optimizer = optim.SGD(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max',
-                                                     factor=0.8,
-                                                     patience=5)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
         # criterion2 = SoftIoULoss()
         criterion1 = nn.BCELoss()
         criterion2 = SoftDiceLoss()
+        # criterion3 = nn.MSELoss()
         # criterion = focal_loss()
         # criterion = nn.NLLLoss()
 
@@ -113,7 +119,7 @@ def train_net(net,
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
-                    scheduler.step(val_score)
+                    # scheduler.step(val_score)
                     writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
 
                     if net.n_classes > 1:
@@ -127,7 +133,7 @@ def train_net(net,
                     if net.n_classes == 1:
                         writer.add_images('masks/true', true_masks, global_step)
                         writer.add_images('masks/pred', masks_pred > 0.5, global_step)
-
+        scheduler.step(epoch)
         if save_cp:
             try:
                 os.mkdir(dir_checkpoint)
@@ -135,7 +141,9 @@ def train_net(net,
             except OSError:
                 pass
             torch.save(net.state_dict(),
-                       dir_checkpoint + f'CP_epoch{epoch + 1}.pth')
+                       dir_checkpoint + f'CP_resunet_{epoch + 1}.pth')
+            torch.save(optimizer.state_dict(),
+                       dir_checkpoint + f'CP_Optimizer_{epoch + 1}.pth')
             logging.info(f'Checkpoint {epoch + 1} saved !')
 
     writer.close()
@@ -165,17 +173,17 @@ if __name__ == '__main__':
     args = get_args()
     args.epochs = 100
     args.batchsize = 4
-    args.scale = [1024, 1024]
-    args.lr = 1e-5
+    args.scale = [512, 512]
+    args.lr = 5e-4
     args.val = 10
-    args.load = r'.\checkpoints\CP_epoch21.pth'
+    args.load = False
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DlinkNet34(num_classes=1, num_channels=3)
+    net = ResUnetPlusPlus(channel=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
-                 f'\t{net.n_classes} output channels (classes)\n')
+                 f'1 output channels (classes)\n')
 
     if args.load:
         net.load_state_dict(
@@ -194,7 +202,8 @@ if __name__ == '__main__':
                   lr=args.lr,
                   device=device,
                   img_scale=args.scale,
-                  val_percent=args.val / 100)
+                  val_percent=args.val / 100,
+                  val_ignore_index=6225)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
