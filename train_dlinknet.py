@@ -23,6 +23,9 @@ dir_img = r'data/mixed_data_2.0/'
 dir_mask = r'data/mixed_mask_2.0/'
 dir_checkpoint = r'checkpoints/'
 
+cross_dir_img = r'data/cropped_cz_src/'
+cross_dir_mask = r'data/cropped_cz_mask/'
+
 
 def train_net(net,
               device,
@@ -31,14 +34,24 @@ def train_net(net,
               lr=0.001,
               val_percent=0.1,
               save_cp=True,
-              img_scale=0.5):
+              img_scale=0.5,
+              val_ignore_index=None):
     torch.manual_seed(1234)
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
+    cross_dataset = BasicDataset(cross_dir_img, cross_dir_mask, img_scale)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
-    val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
+    if val_ignore_index is not None:
+        val_indeces = val.indices
+        reference = val_indeces.copy()
+        for i, ele in enumerate(reference):
+            if ele > val_ignore_index:
+                val_indeces.remove(ele)
+    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
+    cross_val_loader = DataLoader(cross_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True,
+                                  drop_last=True)
 
     writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
     global_step = 0
@@ -106,13 +119,14 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (n_train // (3 * batch_size)) == 0:
+                if global_step % (n_train // (2 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
                         tag = tag.replace('.', '/')
                         writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
+                    cross_val_score = eval_net(net, cross_val_loader, device)
                     scheduler.step(val_score)
                     writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
 
@@ -121,7 +135,10 @@ def train_net(net,
                         writer.add_scalar('Loss/test', val_score, global_step)
                     else:
                         logging.info('Validation Dice Coeff: {}'.format(val_score))
+                        logging.info('Cross Validation Dice Coeff: {}'.format(cross_val_score))
                         writer.add_scalar('Dice/test', val_score, global_step)
+                        writer.add_scalar('Cross_Dice/test', cross_val_score, global_step)
+
 
                     writer.add_images('images', imgs, global_step)
                     if net.n_classes == 1:
@@ -194,7 +211,8 @@ if __name__ == '__main__':
                   lr=args.lr,
                   device=device,
                   img_scale=args.scale,
-                  val_percent=args.val / 100)
+                  val_percent=args.val / 100,
+                  val_ignore_index=6225)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
