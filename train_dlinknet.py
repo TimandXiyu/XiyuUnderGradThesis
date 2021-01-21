@@ -186,7 +186,7 @@ if __name__ == '__main__':
     args.epochs = 100
     args.batchsize = 16
     args.scale = [768, 768]
-    args.lr = 4e-4
+    args.lr = 8e-4
     args.val = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
