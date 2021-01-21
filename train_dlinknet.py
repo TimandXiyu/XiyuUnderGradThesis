@@ -119,6 +119,11 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
+                if global_step % (n_train // batch_size) == 0:
+                    cross_val_score = eval_net(net, cross_val_loader, device)
+                    writer.add_scalar('Cross_Dice/test', cross_val_score, global_step)
+                    logging.info('Cross Validation Dict/test', cross_val_score)
+
                 if global_step % (n_train // (2 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
                         tag = tag.replace('.', '/')
@@ -126,7 +131,6 @@ def train_net(net,
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
-                    cross_val_score = eval_net(net, cross_val_loader, device)
                     scheduler.step(val_score)
                     writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
 
@@ -135,10 +139,7 @@ def train_net(net,
                         writer.add_scalar('Loss/test', val_score, global_step)
                     else:
                         logging.info('Validation Dice Coeff: {}'.format(val_score))
-                        logging.info('Cross Validation Dice Coeff: {}'.format(cross_val_score))
                         writer.add_scalar('Dice/test', val_score, global_step)
-                        writer.add_scalar('Cross_Dice/test', cross_val_score, global_step)
-
 
                     writer.add_images('images', imgs, global_step)
                     if net.n_classes == 1:
@@ -153,6 +154,8 @@ def train_net(net,
                 pass
             torch.save(net.state_dict(),
                        dir_checkpoint + f'CP_epoch{epoch + 1}.pth')
+            torch.save(optimizer.state_dict(),
+                       dir_checkpoint + f'CP_Optimizer_{epoch + 1}.pth')
             logging.info(f'Checkpoint {epoch + 1} saved !')
 
     writer.close()
@@ -181,11 +184,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
     args.epochs = 100
-    args.batchsize = 4
-    args.scale = [1024, 1024]
-    args.lr = 1e-5
+    args.batchsize = 16
+    args.scale = [768, 768]
+    args.lr = 4e-4
     args.val = 10
-    args.load = r'.\checkpoints\CP_epoch21.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
