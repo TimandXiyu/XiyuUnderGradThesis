@@ -32,7 +32,7 @@ class BasicDataset(Dataset):
 
     @classmethod
     def preprocess(cls, pil_img, scale):
-        w, h = pil_img.size
+        # w, h = pil_img.size
         newW, newH = scale[0], scale[1]
         assert newW > 0 and newH > 0, 'Scale is too small'
         pil_img = pil_img.resize((newW, newW))
@@ -75,8 +75,8 @@ class BasicDataset(Dataset):
             mask = sample['label']
             img = TTA_tools.randomHueSaturationValue(img)
 
-        img = self.preprocess(img, self.scale)
-        mask = self.preprocess(mask, self.scale)
+        img = self.preprocess(img, [1024, 1024])
+        mask = self.preprocess(mask, [1024, 1024])
 
         return {
             'image': torch.from_numpy(img).type(torch.FloatTensor),

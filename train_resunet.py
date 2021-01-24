@@ -18,8 +18,8 @@ import torch.backends.cudnn
 from unet.resunet_p import ResUnetPlusPlus
 
 
-dir_img = r'data/mixed_data_2.0/'
-dir_mask = r'data/mixed_mask_2.0/'
+dir_img = r'data/mixed_data_3.0/'
+dir_mask = r'data/mixed_mask_3.0/'
 dir_checkpoint = r'checkpoints/'
 
 
@@ -46,7 +46,7 @@ def train_net(net,
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
 
-    writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
+    writer = SummaryWriter(comment=f'ResUnet++_with_augmentation3.0_LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
     global_step = 0
 
     logging.info(f'''Starting training:
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     args.epochs = 100
     args.batchsize = 4
     args.scale = [512, 512]
-    args.lr = 5e-4
+    args.lr = 1e-3
     args.val = 10
     args.load = False
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

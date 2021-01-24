@@ -19,12 +19,12 @@ from unet.dinknet import DinkNet34 as DlinkNet34
 from unet.dinknet import DinkNet101 as DlinkNet101
 from unet.dinknet import DinkNet50 as DlinkNet50
 
-dir_img = r'data/mixed_data_2.0/'
-dir_mask = r'data/mixed_mask_2.0/'
+dir_img = r'./data/mixed_data_3.0/'
+dir_mask = r'./data/mixed_mask_3.0/'
 dir_checkpoint = r'checkpoints/'
 
-cross_dir_img = r'data/cropped_cz_src/'
-cross_dir_mask = r'data/cropped_cz_mask/'
+cross_dir_img = r'./data/cz/original_content/'
+cross_dir_mask = r'./data/cz/original_mask/'
 
 
 def train_net(net,
@@ -39,6 +39,7 @@ def train_net(net,
     torch.manual_seed(1234)
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     cross_dataset = BasicDataset(cross_dir_img, cross_dir_mask, img_scale)
+    cross_dataset.aug = False
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
@@ -69,9 +70,11 @@ def train_net(net,
 
     # optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
+    # optimizer.load_state_dict(torch.load(r'.\checkpoints\CP_Optimizer_32.pth'))
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max',
-                                                     factor=0.8,
+                                                     factor=0.6,
                                                      patience=5)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=0.1, step_size=5)
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
@@ -119,7 +122,7 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (n_train // batch_size) == 0:
+                if global_step % (2 * n_train // batch_size) == 0:
                     cross_val_score = eval_net(net, cross_val_loader, device)
                     writer.add_scalar('Cross_Dice/test', cross_val_score, global_step)
                     logging.info('Cross Validation Dict/test', cross_val_score)
@@ -146,7 +149,7 @@ def train_net(net,
                         writer.add_images('masks/true', true_masks, global_step)
                         writer.add_images('masks/pred', masks_pred > 0.5, global_step)
 
-        if save_cp:
+        if save_cp and global_step % (4 * n_train // batch_size) == 0:
             try:
                 os.mkdir(dir_checkpoint)
                 logging.info('Created checkpoint directory')
@@ -184,14 +187,15 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
     args.epochs = 100
-    args.batchsize = 16
-    args.scale = [768, 768]
-    args.lr = 8e-4
+    args.batchsize = 2
+    args.scale = [1024, 1024]
+    args.lr = 1e-5
     args.val = 10
+    args.load = r'./checkpoints/CP_epoch28.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DlinkNet34(num_classes=1, num_channels=3)
+    net = DlinkNet101(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')
@@ -200,6 +204,7 @@ if __name__ == '__main__':
         net.load_state_dict(
             torch.load(args.load, map_location=device)
         )
+
         logging.info(f'Model loaded from {args.load}')
 
     net.to(device=device)

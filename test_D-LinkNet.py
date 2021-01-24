@@ -55,13 +55,13 @@ def tst_net(net,
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    batchsize = 4
+    batchsize = 2
     scale = [1024, 1024]
-    load_dir = r'D:\NetworkCheckpoints\DlinkNet34-mixeddata2.0-augmented\CP_epoch8.pth'
+    load_dir = r'D:\NetworkCheckpoints\CP DlinkNet34-auged3.0\CP_epoch93.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DlinkNet34(num_classes=1, num_channels=3)
+    net = DlinkNet50(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')

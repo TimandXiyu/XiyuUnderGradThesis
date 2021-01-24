@@ -3,97 +3,74 @@ import logging
 import os
 import sys
 
+import torch
+import torch.nn as nn
 from torch import optim
-import numpy as np
 from tqdm import tqdm
+
 from eval import eval_net
+
 from torch.utils.tensorboard import SummaryWriter
 from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 from utils.dice_loss import SoftDiceLoss
 import torch.backends.cudnn
-from utils.lr_scheduler import LR_Scheduler
-from DeepLabModel.deeplab import *
+from unet.dinknet import DinkNet34 as DlinkNet34
+from unet.dinknet import DinkNet101 as DlinkNet101
+from unet.dinknet import DinkNet50 as DlinkNet50
 
-dir_img = 'data/mixed_data_3.0/'
-dir_mask = 'data/mixed_mask_3.0/'
-dir_checkpoint = 'checkpoints/'
+dir_img = r'./data/cz/original_content/'
+dir_mask = r'./data/cz/original_mask/'
+dir_checkpoint = r'checkpoints/'
 
-cross_dir_img = r'./data/cz/original_content/'
-cross_dir_mask = r'./data/cz/original_mask/'
+cross_dir_img = r'./data/cz/unlabeled_src/'
+cross_dir_mask = r'./data/cz/unlabeled_mask/'
 
 
 def train_net(net,
               device,
               epochs=5,
               batch_size=1,
-              lr=0.0001,
-              val_percent=0.1,
+              lr=0.001,
               save_cp=True,
-              img_scale=0.5,
-              val_ignore_index=None):
+              img_scale=0.5):
     torch.manual_seed(1234)
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     cross_dataset = BasicDataset(cross_dir_img, cross_dir_mask, img_scale)
     cross_dataset.aug = False
-    n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) - n_val
-    train, val = random_split(dataset, [n_train, n_val])
-    if val_ignore_index is not None:
-        val_indeces = val.indices
-        reference = val_indeces.copy()
-        for i, ele in enumerate(reference):
-            if ele > val_ignore_index:
-                val_indeces.remove(ele)
+    train = dataset
+    n_train = len(dataset)
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
     cross_val_loader = DataLoader(cross_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True,
                                   drop_last=True)
 
-    writer = SummaryWriter(comment=f'DeepLab_moblienet_auged_3.0_LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
+    writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
     global_step = 0
 
     logging.info(f'''Starting training:
         Epochs:          {epochs}
         Batch size:      {batch_size}
         Learning rate:   {lr}
-        Training size:   {n_train}
-        Validation size: {n_val}
         Checkpoints:     {save_cp}
         Device:          {device.type}
         Images scaling:  {img_scale}
     ''')
 
     # optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
-    optimizer = optim.SGD(net.parameters(), lr=lr, weight_decay=5e-4, momentum=0.9)
-    scheduler = LR_Scheduler('poly', lr, epochs, len(train_loader))
-    # optimizer = optim.Adam(net.parameters(), lr=5e-3, weight_decay=1e-8)
-    # scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, 1e-4, 5e-3,
-    #                                               step_size_up=250,
-    #                                               step_size_down=250,
-    #                                               mode='triangular',
-    #                                               gamma=1.0,
-    #                                               scale_fn=None,
-    #                                               scale_mode='cycle',
-    #                                               cycle_momentum=True,
-    #                                               base_momentum=0.8,
-    #                                               max_momentum=0.9,
-    #                                               last_epoch=-1)
+    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
+    # optimizer.load_state_dict(torch.load(r'.\checkpoints\CP_Optimizer_32.pth'))
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max',
+                                                     factor=0.8,
+                                                     patience=5)
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
-        # criterion2 = SoftIoULoss()
         criterion1 = nn.BCELoss()
         criterion2 = SoftDiceLoss()
-        # criterion = focal_loss()
-        # criterion = nn.NLLLoss()
-
-    best_pred = 0
 
     for epoch in range(epochs):
         net.train()
         epoch_loss = 0
-        i = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
                 dataset.aug = True
@@ -116,10 +93,6 @@ def train_net(net,
                     loss = criterion2(masks_pred, true_masks) + criterion1(masks_pred, true_masks)
                 else:
                     loss = criterion(masks_pred, true_masks)
-                if best_pred <= 1 - loss.item():
-                    best_pred = loss.item()
-                scheduler(optimizer, i, epoch, best_pred)
-
 
                 epoch_loss += loss.item()
                 writer.add_scalar('Loss/train', loss.item(), global_step)
@@ -130,39 +103,30 @@ def train_net(net,
                 loss.backward()
                 # nn.utils.clip_grad_value_(net.parameters(), 0.1)
                 optimizer.step()
-                # scheduler.step()
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-
-                if global_step % (2 * n_train // batch_size) == 0:
+                print(global_step)
+                if (global_step + 1) % 150 == 0:
                     cross_val_score = eval_net(net, cross_val_loader, device)
                     writer.add_scalar('Cross_Dice/test', cross_val_score, global_step)
-                    logging.info('Cross Validation Dice: {}'.format(cross_val_score))
+                    logging.info('Cross Validation Dict/test', cross_val_score)
 
-                if global_step % 100 == 0:
-                    writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
-                if global_step % (n_train // (2 * batch_size)) == 0:
-                    for tag, value in net.named_parameters():
-                        tag = tag.replace('.', '/')
-                        writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
-                        writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
-                    dataset.aug = False
-                    val_score = eval_net(net, val_loader, device)
+                # if global_step % (n_train // batch_size) == 0:
+                #     for tag, value in net.named_parameters():
+                #         tag = tag.replace('.', '/')
+                #         writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
+                #         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
+                #     dataset.aug = False
+                #     writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
+                #
+                #
+                #     writer.add_images('images', imgs, global_step)
+                #     if net.n_classes == 1:
+                #         writer.add_images('masks/true', true_masks, global_step)
+                #         writer.add_images('masks/pred', masks_pred > 0.5, global_step)
 
-                    if net.n_classes > 1:
-                        logging.info('Validation cross entropy: {}'.format(val_score))
-                        writer.add_scalar('Loss/test', val_score, global_step)
-                    else:
-                        logging.info('Validation Dice Coeff: {}'.format(val_score))
-                        writer.add_scalar('Dice/test', val_score, global_step)
-
-                    writer.add_images('images', imgs, global_step)
-                    if net.n_classes == 1:
-                        writer.add_images('masks/true', true_masks, global_step)
-                        writer.add_images('masks/pred', masks_pred > 0.5, global_step)
-
-        if save_cp:
+        if save_cp and global_step % (n_train // batch_size) == 0:
             try:
                 os.mkdir(dir_checkpoint)
                 logging.info('Created checkpoint directory')
@@ -170,6 +134,8 @@ def train_net(net,
                 pass
             torch.save(net.state_dict(),
                        dir_checkpoint + f'CP_epoch{epoch + 1}.pth')
+            torch.save(optimizer.state_dict(),
+                       dir_checkpoint + f'CP_Optimizer_{epoch + 1}.pth')
             logging.info(f'Checkpoint {epoch + 1} saved !')
 
     writer.close()
@@ -197,19 +163,15 @@ def get_args():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
-    args.epochs = 200
+    args.epochs = 20
     args.batchsize = 4
-    args.lr = 0.005
-    args.scale = 1
-    args.val = 10
-    # args.load = r'checkpoints/CP_epoch100.pth'
+    args.scale = [1024, 1024]
+    args.lr = 1e-4
+    args.load = r'D:\NetworkCheckpoints\CP DlinkNet50 auged 3.0\CP_epoch33.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DeepLab(num_classes=1,
-                  backbone='mobilenet',
-                  output_stride=16,
-                  freeze_bn=False)
+    net = DlinkNet50(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')
@@ -218,6 +180,7 @@ if __name__ == '__main__':
         net.load_state_dict(
             torch.load(args.load, map_location=device)
         )
+
         logging.info(f'Model loaded from {args.load}')
 
     net.to(device=device)
@@ -230,9 +193,7 @@ if __name__ == '__main__':
                   batch_size=args.batchsize,
                   lr=args.lr,
                   device=device,
-                  img_scale=args.scale,
-                  val_percent=args.val / 100,
-                  val_ignore_index=6225)
+                  img_scale=args.scale,)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
