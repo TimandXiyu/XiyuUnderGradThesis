@@ -23,8 +23,8 @@ dir_img = r'./data/mixed_data_3.0/'
 dir_mask = r'./data/mixed_mask_3.0/'
 dir_checkpoint = r'checkpoints/'
 
-cross_dir_img = r'./data/cz/original_content/'
-cross_dir_mask = r'./data/cz/original_mask/'
+cross_dir_img = r'./data/cz/cropped_cz_src/'
+cross_dir_mask = r'./data/cropped_cz_mask/'
 
 
 def train_net(net,

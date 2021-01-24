@@ -12,8 +12,8 @@ from unet.dinknet import DinkNet50 as DlinkNet50
 from test import test_net
 
 
-dir_img = 'data/cropped_cz_src/'
-dir_mask = 'data/cropped_cz_mask/'
+dir_img = './data/cz/cropped_cz_src/'
+dir_mask = './data/cz/cropped_cz_mask/'
 
 
 def tst_net(net,
@@ -57,11 +57,11 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     batchsize = 2
     scale = [1024, 1024]
-    load_dir = r'D:\NetworkCheckpoints\CP DlinkNet34-auged3.0\CP_epoch93.pth'
+    load_dir = r'D:\NetworkCheckpoints\CP Dlinknet101 auged 3.0\CP_epoch28.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DlinkNet50(num_classes=1, num_channels=3)
+    net = DlinkNet101(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')

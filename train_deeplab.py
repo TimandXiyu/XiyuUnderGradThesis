@@ -19,8 +19,8 @@ dir_img = 'data/mixed_data_3.0/'
 dir_mask = 'data/mixed_mask_3.0/'
 dir_checkpoint = 'checkpoints/'
 
-cross_dir_img = r'./data/cz/original_content/'
-cross_dir_mask = r'./data/cz/original_mask/'
+cross_dir_img = r'./data/cz/cropped_cz_src/'
+cross_dir_mask = r'./data/cz/cropped_cz_mask/'
 
 
 def train_net(net,
@@ -66,7 +66,10 @@ def train_net(net,
 
     # optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     optimizer = optim.SGD(net.parameters(), lr=lr, weight_decay=5e-4, momentum=0.9)
-    scheduler = LR_Scheduler('poly', lr, epochs, len(train_loader))
+    # scheduler = LR_Scheduler('poly', lr, epochs, len(train_loader))
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max',
+                                                     factor=0.6,
+                                                     patience=5)
     # optimizer = optim.Adam(net.parameters(), lr=5e-3, weight_decay=1e-8)
     # scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, 1e-4, 5e-3,
     #                                               step_size_up=250,
@@ -118,8 +121,6 @@ def train_net(net,
                     loss = criterion(masks_pred, true_masks)
                 if best_pred <= 1 - loss.item():
                     best_pred = loss.item()
-                scheduler(optimizer, i, epoch, best_pred)
-
 
                 epoch_loss += loss.item()
                 writer.add_scalar('Loss/train', loss.item(), global_step)
@@ -149,7 +150,7 @@ def train_net(net,
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
-
+                    scheduler.step(val_score)
                     if net.n_classes > 1:
                         logging.info('Validation cross entropy: {}'.format(val_score))
                         writer.add_scalar('Loss/test', val_score, global_step)
@@ -162,7 +163,7 @@ def train_net(net,
                         writer.add_images('masks/true', true_masks, global_step)
                         writer.add_images('masks/pred', masks_pred > 0.5, global_step)
 
-        if save_cp:
+        if save_cp and global_step % (n_train // (batch_size * 2)) == 0:
             try:
                 os.mkdir(dir_checkpoint)
                 logging.info('Created checkpoint directory')
@@ -197,12 +198,12 @@ def get_args():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
-    args.epochs = 200
+    args.epochs = 120
     args.batchsize = 4
-    args.lr = 0.005
+    args.lr = 5e-5
     args.scale = 1
     args.val = 10
-    # args.load = r'checkpoints/CP_epoch100.pth'
+    args.load = r'checkpoints/CP_epoch24.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
