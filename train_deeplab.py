@@ -36,12 +36,19 @@ def train_net(net,
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     cross_dataset = BasicDataset(cross_dir_img, cross_dir_mask, img_scale)
     cross_dataset.aug = False
+    n_tst = 0.1
     n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) - n_val
-    train, val = random_split(dataset, [n_train, n_val])
+    n_train = len(dataset) - n_val - n_tst
+    train, val, tst = random_split(dataset, [n_train, n_val, n_tst])
     if val_ignore_index is not None:
         val_indeces = val.indices
         reference = val_indeces.copy()
+        for i, ele in enumerate(reference):
+            if ele > val_ignore_index:
+                val_indeces.remove(ele)
+    if val_ignore_index is not None:
+        tst_indeces = tst.indices
+        reference = tst_indeces.copy()
         for i, ele in enumerate(reference):
             if ele > val_ignore_index:
                 val_indeces.remove(ele)

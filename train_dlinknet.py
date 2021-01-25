@@ -40,15 +40,22 @@ def train_net(net,
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     cross_dataset = BasicDataset(cross_dir_img, cross_dir_mask, img_scale)
     cross_dataset.aug = False
+    n_tst = int(0.1 * len(dataset))
     n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) - n_val
-    train, val = random_split(dataset, [n_train, n_val])
+    n_train = len(dataset) - n_val - n_tst
+    train, val, tst = random_split(dataset, [n_train, n_val, n_tst])
     if val_ignore_index is not None:
         val_indeces = val.indices
         reference = val_indeces.copy()
         for i, ele in enumerate(reference):
             if ele > val_ignore_index:
                 val_indeces.remove(ele)
+    if val_ignore_index is not None:
+        tst_indeces = tst.indices
+        reference = tst_indeces.copy()
+        for i, ele in enumerate(reference):
+            if ele > val_ignore_index:
+                tst_indeces.remove(ele)
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
     cross_val_loader = DataLoader(cross_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True,
@@ -134,6 +141,7 @@ def train_net(net,
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
+                    tst_score = eval_net(net, val_loader, device)
                     scheduler.step(val_score)
                     writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
 
@@ -142,7 +150,9 @@ def train_net(net,
                         writer.add_scalar('Loss/test', val_score, global_step)
                     else:
                         logging.info('Validation Dice Coeff: {}'.format(val_score))
-                        writer.add_scalar('Dice/test', val_score, global_step)
+                        logging.info('Validation Dice Coeff: {}'.format(tst_score))
+                        writer.add_scalar('Dice/val', val_score, global_step)
+                        writer.add_scalar('Dice/test', tst_score, global_step)
 
                     writer.add_images('images', imgs, global_step)
                     if net.n_classes == 1:
@@ -191,7 +201,7 @@ if __name__ == '__main__':
     args.scale = [1024, 1024]
     args.lr = 1e-5
     args.val = 10
-    args.load = r'./checkpoints/CP_epoch28.pth'
+    # args.load = r'./checkpoints/CP_epoch28.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
