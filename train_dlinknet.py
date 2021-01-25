@@ -58,8 +58,7 @@ def train_net(net,
                 tst_indeces.remove(ele)
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
-    cross_val_loader = DataLoader(cross_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True,
-                                  drop_last=True)
+    tst_loader = DataLoader(tst, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
 
     writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
     global_step = 0
@@ -129,10 +128,10 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (2 * n_train // batch_size) == 0:
-                    cross_val_score = eval_net(net, cross_val_loader, device)
-                    writer.add_scalar('Cross_Dice/test', cross_val_score, global_step)
-                    logging.info('Cross Validation Dict/test', cross_val_score)
+                # if global_step % (2 * n_train // batch_size) == 0:
+                #     cross_val_score = eval_net(net, cross_val_loader, device)
+                #     writer.add_scalar('Cross_Dice/test', cross_val_score, global_step)
+                #     logging.info('Cross Validation Dict/test', cross_val_score)
 
                 if global_step % (n_train // (2 * batch_size)) == 0:
                     for tag, value in net.named_parameters():
@@ -141,7 +140,7 @@ def train_net(net,
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
                     dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
-                    tst_score = eval_net(net, val_loader, device)
+                    tst_score = eval_net(net, tst_loader, device)
                     scheduler.step(val_score)
                     writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step)
 
@@ -197,15 +196,15 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
     args.epochs = 100
-    args.batchsize = 2
+    args.batchsize = 4
     args.scale = [1024, 1024]
-    args.lr = 1e-5
+    args.lr = 1e-4
     args.val = 10
     # args.load = r'./checkpoints/CP_epoch28.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    net = DlinkNet101(num_classes=1, num_channels=3)
+    net = DlinkNet34(num_classes=1, num_channels=3)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n')
