@@ -59,6 +59,8 @@ def train_net(net,
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
     tst_loader = DataLoader(tst, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
+    val_loader.aug = False
+    tst_loader.aug = False
 
     writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
     global_step = 0
@@ -80,7 +82,7 @@ def train_net(net,
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max',
                                                      factor=0.6,
                                                      patience=5)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=0.1, step_size=5)
+    # scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=0.1, step_size=5)
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
@@ -95,7 +97,7 @@ def train_net(net,
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
-                dataset.aug = True
+                train_loader.aug = True
                 imgs = batch['image']
                 true_masks = batch['mask']
                 assert imgs.shape[1] == net.n_channels, \
@@ -138,7 +140,6 @@ def train_net(net,
                         tag = tag.replace('.', '/')
                         writer.add_histogram('weights/' + tag, value.data.cpu().numpy(), global_step)
                         writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy(), global_step)
-                    dataset.aug = False
                     val_score = eval_net(net, val_loader, device)
                     tst_score = eval_net(net, tst_loader, device)
                     scheduler.step(val_score)
@@ -158,7 +159,7 @@ def train_net(net,
                         writer.add_images('masks/true', true_masks, global_step)
                         writer.add_images('masks/pred', masks_pred > 0.5, global_step)
 
-        if save_cp and global_step % (4 * n_train // batch_size) == 0:
+        if save_cp and global_step % (n_train // batch_size) == 0:
             try:
                 os.mkdir(dir_checkpoint)
                 logging.info('Created checkpoint directory')
