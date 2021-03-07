@@ -82,7 +82,6 @@ def train_net(net,
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max',
                                                      factor=0.6,
                                                      patience=5)
-    # scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=0.1, step_size=5)
     if net.n_classes > 1:
         criterion = nn.CrossEntropyLoss()
     else:
